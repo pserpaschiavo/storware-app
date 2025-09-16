@@ -1,133 +1,66 @@
-# Roadmap: API de Relatórios OpenStack
+# 🚀 Roadmap: Desenvolvimento do Cliente Python para API Storware
 
-Este documento descreve o plano de trabalho otimizado para o desenvolvimento da aplicação de relatórios OpenStack, dividido em fases lógicas e incrementais. Cada fase representa um marco funcional que nos aproxima do objetivo final de gerar relatórios detalhados sobre a utilização de recursos no OpenStack.
-
-## Fase 1: Fundação Sólida (1-2 semanas)
-
-### Ambiente de Desenvolvimento Completo
-- **Completar o arquivo `requirements.txt`** com todas as dependências:
-  ```
-  fastapi>=0.103.0
-  uvicorn>=0.23.0
-  celery>=5.3.0
-  redis>=4.6.0
-  pydantic>=2.3.0
-  pydantic-settings>=2.0.0
-  openstacksdk>=1.0.0
-  weasyprint>=60.0
-  jinja2>=3.1.0
-  httpx>=0.24.0
-  ```
-- **Criar o `docker-compose.yaml` completo** com serviços para API, worker, e Redis
-- **Implementar testes automatizados básicos** para validar a infraestrutura
-
-### Modelos e Schemas
-- Criar módulo `app/models/` para definir schemas Pydantic:
-  - `Project`: Modelo para representar projetos OpenStack
-  - `Server`: Modelo para representar instâncias VM
-  - `Report`: Modelo para representar configurações de relatórios
-
-### Rota de Diagnóstico
-- Implementar rota `/api/v1/system/health` para verificar conexão com Redis e OpenStack
-- Adicionar logs detalhados para facilitar diagnóstico de problemas
-
-## Fase 2: Integração OpenStack (1 semana)
-
-### Cliente OpenStack Funcional
-- **Implementar `openstack_client.py` com autenticação real**
-- Adicionar métodos para:
-  - Listar projetos disponíveis
-  - Obter detalhes de um projeto
-  - Listar VMs de um projeto com informações detalhadas (CPU, RAM, disco, IP)
-  - Obter estatísticas de uso
-
-### Cache Inteligente
-- Implementar cache Redis para resultados do OpenStack para melhorar performance
-- Configurar tempo de expiração adequado para diferentes tipos de dados
-
-## Fase 3: Motor de Relatórios (1-2 semanas)
-
-### Gerador de Relatórios Avançado
-- **Implementar diferentes tipos de relatórios:**
-  - Inventário básico de VMs
-  - Relatório detalhado de recursos (com gráficos de utilização)
-  - Relatório de custos estimados
-
-### Templates HTML Responsivos
-- Criar templates em Jinja2 com estilos modernos
-- Implementar componentes reutilizáveis para tabelas, gráficos, etc.
-- Adicionar suporte para temas e personalização
-
-### Exportador PDF Robusto
-- **Implementar geração de PDF com WeasyPrint**
-- Adicionar cabeçalhos, rodapés, paginação
-- Suporte para marcas d'água e estilos personalizados
-
-## Fase 4: API e Sistema de Agendamento (1 semana)
-
-### API RESTful Completa
-- **Implementar CRUD para configurações de relatórios**
-- Adicionar autenticação JWT para acesso à API
-- Documentação automática com Swagger UI
-
-### Sistema de Agendamento Flexível
-- **Implementar Celery Beat para agendamento periódico**
-- Suporte para expressões cron para maior flexibilidade
-- Interface para gerenciar agendamentos
-
-## Fase 5: Entrega e Notificações (1 semana)
-
-### Múltiplos Métodos de Entrega
-- **Email** (com SMTP configurável)
-- **Armazenamento em disco persistente**
-- **Integração com serviços de armazenamento em nuvem** (S3, Swift)
-
-### Sistema de Notificações
-- Notificações de conclusão por email
-- Webhook para integração com outros sistemas
-- Logs detalhados e rastreamento de estado
-
-## Fase 6: Recursos Adicionais (2 semanas)
-
-### Dashboard de Monitoramento
-- Interface web simples para visualizar relatórios gerados
-- Estatísticas de execução e performance
-
-### Personalização Avançada
-- Temas visuais para os relatórios
-- Filtros e ordenação customizáveis
-- Campos personalizados
-
-### Melhorias de Performance
-- Otimização de consultas ao OpenStack
-- Processamento paralelo para múltiplos projetos
-- Compressão de PDFs grandes
-
-## Melhorias na Arquitetura
-
-### Separação em Microserviços
-- **API Gateway**: Para gerenciar autenticação e rotas
-- **Serviço de Relatórios**: Para geração de conteúdo
-- **Serviço de Entrega**: Para distribuição de relatórios
-
-### Observabilidade
-- Implementar logging estruturado
-- Métricas de performance com Prometheus
-- Rastreamento distribuído com OpenTelemetry
-
-### Segurança
-- Gerenciamento seguro de credenciais (HashiCorp Vault)
-- Rate limiting para evitar abusos
-- Análise estática de código no CI/CD
-
-## Próximos Passos Imediatos
-
-1. Completar `requirements.txt` com todas as dependências necessárias
-2. Implementar o arquivo `docker-compose.yaml` funcional
-3. Finalizar a configuração do Celery e validar a comunicação com Redis
-4. Implementar o cliente OpenStack real e testar a conexão
-5. Criar um relatório HTML básico e converter para PDF
+**Autor:** Phil
+**Data:** 16 de setembro de 2025
+**Objetivo:** Delinear as próximas fases no desenvolvimento de um script Python robusto e modular para interagir com a API do Storware, focando primeiro na leitura de dados e depois na criação de uma arquitetura de software escalável.
 
 ---
 
-Este roadmap foi desenhado para permitir entregas incrementais de valor, priorizando a funcionalidade básica e depois expandindo para recursos mais avançados. Cada fase constrói sobre a anterior, mantendo a arquitetura coesa e escalável.
+## 🎯 Fase 1: Aprimoramento da Coleta de Dados (Leitura da API)
+
+O foco desta fase é evoluir nosso script de uma simples prova de conceito para uma ferramenta útil de consulta de informações. Vamos extrair e apresentar os dados da API de forma clara e estruturada.
+
+### Tarefas:
+
+-   [ ] **Refatorar a listagem de VMs em uma função `list_vms()`:**
+    -   A função deverá receber a `session` autenticada como argumento.
+    -   Deverá processar a resposta JSON da API para extrair os dados de cada máquina virtual.
+    -   O resultado final será uma tabela formatada no console, exibindo colunas essenciais como: `Nome da VM`, `GUID` e `Status de Proteção`.
+
+-   [ ] **(Opcional) Adicionar biblioteca de formatação de tabelas:**
+    -   Para uma saída "elegante", pesquisar e implementar a biblioteca `tabulate` ou `rich` para renderizar a tabela de VMs no terminal.
+
+-   [ ] **Implementar a função `get_vm_details(vm_guid)`:**
+    -   A função receberá a `session` e um `GUID` de uma VM como argumentos.
+    -   Fará uma chamada para o endpoint `GET /virtual-machines/{guid}`.
+    -   Exibirá os detalhes mais importantes da VM de forma legível.
+
+**✅ Critério de Conclusão:** O script é capaz de listar todas as VMs de forma clara e buscar detalhes de qualquer VM específica usando seu GUID.
+
+---
+
+## 🏗️ Fase 2: Refatoração para Arquitetura Orientada a Objetos
+
+Com as funcionalidades de leitura prontas, o foco agora é reestruturar nosso código. Vamos transformá-lo de um script linear para uma classe reutilizável, seguindo as melhores práticas de engenharia de software.
+
+### Tarefas:
+
+-   [ ] **Criar a classe `StorwareAPIClient`:**
+    -   Esta classe encapsulará toda a lógica de comunicação com a API.
+
+-   [ ] **Implementar o método construtor `__init__()`:**
+    -   O construtor será responsável por todo o fluxo de autenticação:
+        1.  Carregar as variáveis do `.env` e do ambiente.
+        2.  Descriptografar o usuário e a senha.
+        3.  Chamar o endpoint de login.
+        4.  Armazenar o objeto `session` autenticado em um atributo da classe (ex: `self.session`).
+
+-   [ ] **Migrar as funções para métodos da classe:**
+    -   As funções `list_vms()` e `get_vm_details()` criadas na Fase 1 serão convertidas em métodos da classe (ex: `client.list_vms()`). Elas agora usarão `self.session` para fazer as requisições.
+
+-   [ ] **Atualizar o bloco de execução principal (`if __name__ == "__main__":`)**
+    -   O bloco principal se tornará muito mais limpo. Ele será responsável apenas por:
+        1.  Instanciar o cliente: `client = StorwareAPIClient()`.
+        2.  Chamar os métodos do cliente para executar as ações desejadas.
+
+**✅ Critério de Conclusão:** Todo o código está encapsulado na classe `StorwareAPIClient`. O script principal é legível e simplesmente utiliza a classe para realizar as operações.
+
+---
+
+### Próximos Passos (Pós-Roadmap)
+
+Uma vez que a Fase 2 esteja completa, teremos uma base sólida para implementar rapidamente qualquer outra funcionalidade, como:
+
+-   Implementar ações de **escrita** (ex: `trigger_backup`, `restore_vm`).
+-   Implementar o **monitoramento de tarefas** (ex: `get_task_status`).
+-   Adicionar **argumentos de linha de comando** (com `argparse`) para transformar o script em uma ferramenta CLI completa.
