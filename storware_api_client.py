@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # storware_api_client.py
 # Finalidade: Cliente Python para interagir com a API do Storware,
 # utilizando práticas seguras de gerenciamento de segredos.
@@ -7,35 +8,24 @@ import requests
 import os
 import json
 import urllib3
+import argparse  # <-- 1. Importamos a biblioteca para argumentos de CLI
 from dotenv import load_dotenv
 from cryptography.fernet import Fernet, InvalidToken
+from tabulate import tabulate
 
-# --- Inicialização e Configuração ---
-# Carrega variáveis do arquivo .env para o ambiente de execução
+# --- Bloco de Configuração e Funções (sem alterações) ---
 load_dotenv()
-
-# Desabilita avisos de SSL para ambientes de teste com certificados autoassinados
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-# Carrega as configurações do ambiente
 STORWARE_HOST = os.getenv('STORWARE_HOST')
-# Lemos o nome de usuário e a senha criptografados do .env
 ENCRYPTED_USERNAME = os.getenv('STORWARE_ENCRYPTED_USERNAME')
 ENCRYPTED_PASSWORD = os.getenv('STORWARE_ENCRYPTED_PASSWORD')
-# Lemos a CHAVE MESTRA do ambiente do sistema
 ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
-
-# Constantes da API
 API_BASE_PATH = '/api'
 LOGIN_ENDPOINT = '/session/login'
 HEADERS = {'Content-Type': 'application/json', 'Accept': 'application/json'}
 
-# --- Funções Auxiliares ---
-
 def decrypt_value(key, encrypted_value):
-    """Descriptografa um valor genérico usando a chave de ambiente."""
-    if not key or not encrypted_value:
-        return None  # Erro será tratado na lógica principal
+    if not key or not encrypted_value: return None
     try:
         f = Fernet(key.encode())
         decrypted_value = f.decrypt(encrypted_value.encode())
@@ -47,72 +37,103 @@ def decrypt_value(key, encrypted_value):
         print(f"❌ Ocorreu um erro inesperado durante a descriptografia: {e}")
         return None
 
-# --- Funções Principais da API ---
-
 def create_authenticated_session(host, username, password):
-    """Cria e retorna uma sessão autenticada na API do Storware."""
     if not all([host, username, password]):
-        print("❌ Erro de Configuração: Uma ou mais variáveis (HOST, USERNAME, PASSWORD) não foram definidas ou descriptografadas.")
+        print("❌ Erro de Configuração: Variáveis essenciais não definidas.")
         return None
-
     login_url = f"{host}{API_BASE_PATH}{LOGIN_ENDPOINT}"
-
-    # Payload com as chaves corretas que descobrimos ('login' e 'password')
-    payload = {
-        "login": username,    # <-- CORREÇÃO: A chave correta é "login", conforme nossa investigação.
-        "password": password
-    }
-
+    payload = {"login": username, "password": password}
     session = requests.Session()
     session.headers.update(HEADERS)
-    session.verify = False  # Em produção, use um certificado válido: session.verify = '/path/to/cert.pem'
-
+    session.verify = False
     print(f"Tentando autenticar o usuário '{username}' em '{login_url}'...")
-
     try:
         response = session.post(login_url, data=json.dumps(payload))
-        response.raise_for_status()  # Lança exceção para códigos de erro (4xx/5xx)
+        response.raise_for_status()
         print("✅ Autenticação bem-sucedida! A sessão está pronta para ser usada.")
         return session
-
-    except requests.exceptions.HTTPError as http_err:
-        print(f"❌ Erro HTTP: {http_err}")
-        if response.status_code == 401:
-            print("   Causa provável: Credenciais inválidas (usuário ou senha).")
-        else:
-            print(f"   Resposta do Servidor: {response.text}")
-        return None
-    except requests.exceptions.RequestException as req_err:
-        print(f"❌ Erro de Conexão: {req_err}")
-        print("   Causa provável: O host está inacessível ou o nome/IP/porta está incorreto.")
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Erro na requisição de login: {e}")
         return None
 
-# --- Bloco Principal de Execução ---
+def list_vms(session):
+    """Busca a lista de todas as máquinas virtuais visíveis na API."""
+    vms_url = f"{STORWARE_HOST}{API_BASE_PATH}/virtual-machines"
+    print(f"\nBuscando lista de VMs em '{vms_url}'...")
+    try:
+        response = session.get(vms_url)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Falha ao buscar a lista de VMs: {e}")
+        return None
 
+# --- Bloco Principal de Execução (TOTALMENTE ATUALIZADO) ---
 if __name__ == "__main__":
-    print("🚀 Iniciando cliente da API Storware...")
+    # --- 2. Configuração do Parser de Argumentos ---
+    parser = argparse.ArgumentParser(
+        description="Cliente de linha de comando para a API do Storware.",
+        formatter_class=argparse.RawTextHelpFormatter # Melhora a formatação da ajuda
+    )
+    parser.add_argument('--head', type=int, help='Exibe as N primeiras VMs da lista.')
+    parser.add_argument('--tail', type=int, help='Exibe as N últimas VMs da lista.')
+    parser.add_argument(
+        '--filter-name', 
+        type=str, 
+        help='Filtra VMs cujo nome contém o texto fornecido (case-insensitive).'
+    )
+    # Adicione aqui outros filtros, ex: --filter-status
+    
+    args = parser.parse_args()
 
-    # 1. Descriptografar o nome de usuário e a senha
+    # --- Lógica de Autenticação e Execução ---
+    print("🚀 Iniciando cliente da API Storware...")
+    
     api_username = decrypt_value(ENCRYPTION_KEY, ENCRYPTED_USERNAME)
     api_password = decrypt_value(ENCRYPTION_KEY, ENCRYPTED_PASSWORD)
-
+    
     if api_username and api_password:
-        # 2. Se ambos foram descriptografados, tentar criar a sessão
         authenticated_session = create_authenticated_session(STORWARE_HOST, api_username, api_password)
-
+        
         if authenticated_session:
-            # 3. Se a sessão foi criada, fazer uma chamada de teste
-            print("\n--- Validando a Sessão Autenticada ---")
-            vms_url = f"{STORWARE_HOST}{API_BASE_PATH}/virtual-machines"
-            print(f"Buscando lista de VMs em '{vms_url}'...")
+            vms_list = list_vms(authenticated_session)
+            
+            if vms_list:
+                processed_list = vms_list
+                
+                # --- 3. Lógica de Filtragem e Seleção ---
+                # Primeiro, aplica o filtro de nome, se existir
+                if args.filter_name:
+                    print(f"Filtrando VMs com o nome contendo: '{args.filter_name}'")
+                    # List comprehension para filtrar a lista
+                    processed_list = [
+                        vm for vm in processed_list 
+                        if args.filter_name.lower() in vm.get('name', '').lower()
+                    ]
 
-            try:
-                vm_response = authenticated_session.get(vms_url)
-                vm_response.raise_for_status()
-                vms_data = vm_response.json()
-                print(f"✅ Sucesso! Sessão válida. Encontradas {len(vms_data)} máquinas virtuais.")
+                # Depois, aplica head ou tail na lista já filtrada
+                if args.head:
+                    print(f"Exibindo as primeiras {args.head} VMs...")
+                    processed_list = processed_list[:args.head]
+                elif args.tail:
+                    print(f"Exibindo as últimas {args.tail} VMs...")
+                    processed_list = processed_list[-args.tail:]
 
-            except requests.exceptions.RequestException as e:
-                print(f"❌ Falha ao tentar usar a sessão autenticada: {e}")
+                # --- 4. Preparação e Exibição da Tabela ---
+                print(f"✅ Sucesso! Exibindo {len(processed_list)} de {len(vms_list)} máquinas virtuais encontradas.")
+                
+                if not processed_list:
+                    print("Nenhuma VM encontrada com os filtros aplicados.")
+                else:
+                    headers = ["Nome da VM", "GUID", "Status de Proteção"]
+                    table_data = []
+                    for vm in processed_list:
+                        vm_name = vm.get('name', 'N/A')
+                        vm_guid = vm.get('guid', 'N/A')
+                        protection_status = vm.get('protectionStatus', {}).get('name', 'N/A')
+                        table_data.append([vm_name, vm_guid, protection_status])
+                    
+                    print("\n--- Inventário de Máquinas Virtuais ---")
+                    print(tabulate(table_data, headers=headers, tablefmt="grid"))
     else:
-        print("\n🛑 Processo interrompido. Verifique se as variáveis ENCRYPTION_KEY, STORWARE_ENCRYPTED_USERNAME e STORWARE_ENCRYPTED_PASSWORD estão configuradas corretamente.")
+        print("\n🛑 Processo interrompido. Verifique as variáveis de ambiente.")
