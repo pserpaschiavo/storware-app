@@ -2,65 +2,64 @@
 
 **Autor:** Phil
 **Data:** 16 de setembro de 2025
-**Objetivo:** Delinear as próximas fases no desenvolvimento de um script Python robusto e modular para interagir com a API do Storware, focando primeiro na leitura de dados e depois na criação de uma arquitetura de software escalável.
+**Objetivo:** Desenvolver um cliente de linha de comando (CLI) em Python para consultar informações e monitorar o status de tarefas na API do Storware.
 
 ---
 
-## 🎯 Fase 1: Aprimoramento da Coleta de Dados (Leitura da API)
+## ✅ Fase 1: Coleta de Dados de Inventário (Concluído)
 
-O foco desta fase é evoluir nosso script de uma simples prova de conceito para uma ferramenta útil de consulta de informações. Vamos extrair e apresentar os dados da API de forma clara e estruturada.
+O foco desta fase foi transformar o script em uma ferramenta útil de consulta de inventário, com funcionalidades de filtragem e busca.
 
-### Tarefas:
+### Tarefas Concluídas:
 
--   [ ] **Refatorar a listagem de VMs em uma função `list_vms()`:**
-    -   A função deverá receber a `session` autenticada como argumento.
-    -   Deverá processar a resposta JSON da API para extrair os dados de cada máquina virtual.
-    -   O resultado final será uma tabela formatada no console, exibindo colunas essenciais como: `Nome da VM`, `GUID` e `Status de Proteção`.
-
--   [ ] **(Opcional) Adicionar biblioteca de formatação de tabelas:**
-    -   Para uma saída "elegante", pesquisar e implementar a biblioteca `tabulate` ou `rich` para renderizar a tabela de VMs no terminal.
-
--   [ ] **Implementar a função `get_vm_details(vm_guid)`:**
-    -   A função receberá a `session` e um `GUID` de uma VM como argumentos.
-    -   Fará uma chamada para o endpoint `GET /virtual-machines/{guid}`.
-    -   Exibirá os detalhes mais importantes da VM de forma legível.
-
-**✅ Critério de Conclusão:** O script é capaz de listar todas as VMs de forma clara e buscar detalhes de qualquer VM específica usando seu GUID.
+-   [x] **Implementada a função `list_vms()`** para listar todas as máquinas virtuais.
+-   [x] **Adicionada a biblioteca `tabulate`** para exibição elegante dos dados em tabela.
+-   [x] **Implementada a interface de linha de comando (CLI) com `argparse`**.
+-   [x] **Adicionados os argumentos `--head`, `--tail` e `--filter-name`** para manipulação da lista.
+-   [x] **Implementada a função `get_vm_details()`** e o argumento `--get-details` para inspecionar uma VM específica.
 
 ---
 
-## 🏗️ Fase 2: Refatoração para Arquitetura Orientada a Objetos
+## ✅ Fase 2: Refatoração para Arquitetura Profissional (Concluído)
 
-Com as funcionalidades de leitura prontas, o foco agora é reestruturar nosso código. Vamos transformá-lo de um script linear para uma classe reutilizável, seguindo as melhores práticas de engenharia de software.
+Nesta fase, reestruturamos o código para uma arquitetura orientada a objetos, tornando-o limpo, reutilizável e escalável.
+
+### Tarefas Concluídas:
+
+-   [x] **Criada a classe `StorwareAPIClient`** para encapsular toda a lógica da API.
+-   [x] **Implementado o método construtor `__init__()`** que gerencia todo o fluxo de autenticação.
+-   [x] **Migradas as funções (`list_vms`, `get_vm_details`)** para métodos da classe.
+-   [x] **Simplificado o bloco de execução principal** para apenas instanciar e usar o cliente.
+
+---
+
+## 🎯 Fase 3: Monitoramento de Tarefas (Em Andamento)
+
+O foco desta fase é adicionar a capacidade de visualizar e filtrar as tarefas (como backups, restores, etc.) que estão sendo executadas pelo Storware. Esta é uma funcionalidade "read-only" que não requer permissões elevadas.
 
 ### Tarefas:
 
--   [ ] **Criar a classe `StorwareAPIClient`:**
-    -   Esta classe encapsulará toda a lógica de comunicação com a API.
+-   [ ] **Implementar o método `list_tasks()` na classe:**
+    -   O método fará uma chamada `GET` para o endpoint `/tasks`.
+    -   Permitirá a passagem de filtros como parâmetros opcionais, que serão convertidos em "query parameters" na URL (ex: `?state=RUNNING`).
 
--   [ ] **Implementar o método construtor `__init__()`:**
-    -   O construtor será responsável por todo o fluxo de autenticação:
-        1.  Carregar as variáveis do `.env` e do ambiente.
-        2.  Descriptografar o usuário e a senha.
-        3.  Chamar o endpoint de login.
-        4.  Armazenar o objeto `session` autenticado em um atributo da classe (ex: `self.session`).
+-   [ ] **Adicionar novos comandos à CLI para tarefas:**
+    -   Criar o comando principal `--list-tasks` para exibir todas as tarefas recentes.
+    -   Adicionar argumentos de filtro, como:
+        -   `--filter-task-status [QUEUED|RUNNING|FINISHED|FAILED|CANCELLED]`
+        -   `--filter-task-type [EXPORT|STORE|RESTORE|...]`
+        -   `--filter-by-vm-guid [GUID]` (para ver todas as tarefas de uma VM específica)
 
--   [ ] **Migrar as funções para métodos da classe:**
-    -   As funções `list_vms()` e `get_vm_details()` criadas na Fase 1 serão convertidas em métodos da classe (ex: `client.list_vms()`). Elas agora usarão `self.session` para fazer as requisições.
+-   [ ] **Exibir a lista de tarefas em uma tabela formatada:**
+    -   A tabela mostrará informações cruciais como `Tipo da Tarefa`, `Status`, `VM Alvo (se aplicável)`, `Progresso %` e `GUID da Tarefa`.
 
--   [ ] **Atualizar o bloco de execução principal (`if __name__ == "__main__":`)**
-    -   O bloco principal se tornará muito mais limpo. Ele será responsável apenas por:
-        1.  Instanciar o cliente: `client = StorwareAPIClient()`.
-        2.  Chamar os métodos do cliente para executar as ações desejadas.
-
-**✅ Critério de Conclusão:** Todo o código está encapsulado na classe `StorwareAPIClient`. O script principal é legível e simplesmente utiliza a classe para realizar as operações.
+**✅ Critério de Conclusão:** O script é capaz de listar e filtrar as tarefas em andamento ou concluídas, fornecendo uma visão clara do que o Storware está fazendo.
 
 ---
 
 ### Próximos Passos (Pós-Roadmap)
 
-Uma vez que a Fase 2 esteja completa, teremos uma base sólida para implementar rapidamente qualquer outra funcionalidade, como:
+Se no futuro suas permissões forem expandidas, a base que estamos construindo nos permitirá implementar rapidamente:
 
--   Implementar ações de **escrita** (ex: `trigger_backup`, `restore_vm`).
--   Implementar o **monitoramento de tarefas** (ex: `get_task_status`).
--   Adicionar **argumentos de linha de comando** (com `argparse`) para transformar o script em uma ferramenta CLI completa.
+-   **Ações de escrita:** `trigger_backup`, `restore_vm`, etc.
+-   **Gerenciamento de políticas e schedules**.
