@@ -1,65 +1,48 @@
 # 🚀 Roadmap: Desenvolvimento do Cliente Python para API Storware
-
-**Autor:** Phil
-**Data:** 16 de setembro de 2025
-**Objetivo:** Desenvolver um cliente de linha de comando (CLI) em Python para consultar informações e monitorar o status de tarefas na API do Storware.
+**Objetivo:** Desenvolver um cliente de linha de comando (CLI) completo para consulta, monitoramento e exportação de dados da API do Storware.
 
 ---
 
-## ✅ Fase 1: Coleta de Dados de Inventário (Concluído)
+## ✅ Fases Anteriores (Concluídas)
 
-O foco desta fase foi transformar o script em uma ferramenta útil de consulta de inventário, com funcionalidades de filtragem e busca.
+Nosso trabalho até agora resultou em uma ferramenta CLI funcional e profissional. As seguintes fases foram concluídas com sucesso:
 
-### Tarefas Concluídas:
-
--   [x] **Implementada a função `list_vms()`** para listar todas as máquinas virtuais.
--   [x] **Adicionada a biblioteca `tabulate`** para exibição elegante dos dados em tabela.
--   [x] **Implementada a interface de linha de comando (CLI) com `argparse`**.
--   [x] **Adicionados os argumentos `--head`, `--tail` e `--filter-name`** para manipulação da lista.
--   [x] **Implementada a função `get_vm_details()`** e o argumento `--get-details` para inspecionar uma VM específica.
+* **Fase 1: Coleta de Dados de Inventário:** Implementamos a listagem, filtragem (`--head`, `--tail`, `--filter-name`) e detalhamento de VMs (`--get-details`).
+* **Fase 2: Refatoração para Arquitetura Profissional:** O código foi reestruturado em uma classe `StorwareAPIClient`, tornando-o modular e escalável.
+* **Fase 3: Monitoramento de Tarefas:** Adicionamos a capacidade de listar e filtrar tarefas (`--list-tasks`, `--filter-task-status`, `--filter-by-vm-guid`).
+* **Fase 4: Relatórios de Volumetria:** Implementamos o relatório de tamanho de backup (`--volumetrics`) com filtros de data e a consulta de histórico de backups (`--backup-history`).
 
 ---
 
-## ✅ Fase 2: Refatoração para Arquitetura Profissional (Concluído)
+## 🎯 Fase 5: Expansão da Coleta de Dados e Melhorias de Usabilidade (A Fazer)
 
-Nesta fase, reestruturamos o código para uma arquitetura orientada a objetos, tornando-o limpo, reutilizável e escalável.
-
-### Tarefas Concluídas:
-
--   [x] **Criada a classe `StorwareAPIClient`** para encapsular toda a lógica da API.
--   [x] **Implementado o método construtor `__init__()`** que gerencia todo o fluxo de autenticação.
--   [x] **Migradas as funções (`list_vms`, `get_vm_details`)** para métodos da classe.
--   [x] **Simplificado o bloco de execução principal** para apenas instanciar e usar o cliente.
-
----
-
-## 🎯 Fase 3: Monitoramento de Tarefas (Em Andamento)
-
-O foco desta fase é adicionar a capacidade de visualizar e filtrar as tarefas (como backups, restores, etc.) que estão sendo executadas pelo Storware. Esta é uma funcionalidade "read-only" que não requer permissões elevadas.
+O foco desta fase é enriquecer ainda mais nossa capacidade de extrair dados da API e melhorar a forma como interagimos e utilizamos a saída do script.
 
 ### Tarefas:
 
--   [ ] **Implementar o método `list_tasks()` na classe:**
-    -   O método fará uma chamada `GET` para o endpoint `/tasks`.
-    -   Permitirá a passagem de filtros como parâmetros opcionais, que serão convertidos em "query parameters" na URL (ex: `?state=RUNNING`).
+-   [ ] **Listar Agendamentos (Schedules):**
+    -   Implementar o método `list_schedules()` na classe (`GET /schedules`).
+    -   Criar o comando `--list-schedules` na CLI.
+    -   Exibir os schedules em uma tabela, mostrando `Nome`, `Status (Ativo/Inativo)`, `Tipo de Backup` e `GUID`.
 
--   [ ] **Adicionar novos comandos à CLI para tarefas:**
-    -   Criar o comando principal `--list-tasks` para exibir todas as tarefas recentes.
-    -   Adicionar argumentos de filtro, como:
-        -   `--filter-task-status [QUEUED|RUNNING|FINISHED|FAILED|CANCELLED]`
-        -   `--filter-task-type [EXPORT|STORE|RESTORE|...]`
-        -   `--filter-by-vm-guid [GUID]` (para ver todas as tarefas de uma VM específica)
+-   [ ] **Listar Destinos de Backup (Backup Destinations):**
+    -   Investigar e encontrar o endpoint correto para listar os destinos de backup.
+    -   Implementar o método `list_backup_destinations()` na classe.
+    * Criar o comando `--list-destinations` na CLI.
+    -   Exibir os destinos em uma tabela, mostrando `Nome`, `Tipo` e `GUID`.
 
--   [ ] **Exibir a lista de tarefas em uma tabela formatada:**
-    -   A tabela mostrará informações cruciais como `Tipo da Tarefa`, `Status`, `VM Alvo (se aplicável)`, `Progresso %` e `GUID da Tarefa`.
+-   [ ] **Detalhar Tarefa ou Backup Específico:**
+    -   Adicionar o comando `--get-task-details <GUID>` para buscar e exibir o JSON completo de uma tarefa (`GET /tasks/{guid}`).
+    -   Adicionar o comando `--get-backup-details <GUID>` para buscar e exibir o JSON completo de um backup (`GET /backups/{guid}`).
 
-**✅ Critério de Conclusão:** O script é capaz de listar e filtrar as tarefas em andamento ou concluídas, fornecendo uma visão clara do que o Storware está fazendo.
+-   [ ] **Exportar Saída para Arquivo (CSV/JSON):**
+    -   Adicionar um argumento global, como `--output [csv|json] <NOME_ARQUIVO>`.
+    -   Modificar a lógica de exibição para, em vez de imprimir a tabela no console, salvar os dados no arquivo especificado no formato escolhido.
 
----
+-   [ ] **Agrupar e Sumarizar Resultados (Requisitos a Definir):**
+    -   Adicionar um argumento global, como `--group-by [CAMPO]`, que modifica a saída das listagens para um formato de resumo.
+    -   *Exemplo 1:* `--list-vms --group-by protectionStatus` para mostrar a contagem de VMs por status.
+    -   *Exemplo 2:* `--volumetrics --group-by policy` para mostrar a volumetria total por política de backup.
+    -   *(Nota: Os campos exatos para agrupamento e o formato da saída serão definidos posteriormente, conforme a necessidade da equipe).*
 
-### Próximos Passos (Pós-Roadmap)
-
-Se no futuro suas permissões forem expandidas, a base que estamos construindo nos permitirá implementar rapidamente:
-
--   **Ações de escrita:** `trigger_backup`, `restore_vm`, etc.
--   **Gerenciamento de políticas e schedules**.
+**✅ Critério de Conclusão:** A ferramenta é capaz de consultar os principais objetos de configuração (Schedules, Destinations) e exportar qualquer
