@@ -1,42 +1,37 @@
-#!/usr/bin/env python3
-
-# collect_project_data.py
-# Finalidade: Coletar dados de volumetria de backup por projeto e listar
-# as VMs de cada um, gerando uma saída em JSON para ingestão em banco de dados.
-# - Execução padrão: últimos 24h, sem lista de VMs.
-# - Flags para customizar período e inclusão de VMs.
 
 import json
 import argparse
+import logging
+import sys
 from datetime import datetime, timedelta, timezone
 from storware_api_client import StorwareAPIClient, format_bytes
+
+# Configura o logger para este módulo
+log = logging.getLogger(__name__)
 
 def collect_data(client, from_date, to_date, include_vms):
     """
     Orquestra a coleta e combinação de dados da API do Storware.
     """
-    print("Iniciando coleta de dados...")
+    log.info("Iniciando coleta de dados...")
 
     # --- PASSO 1 (Opcional): Obter a lista completa de todas as VMs ---
     all_vms = None
     if include_vms:
-        print("Buscando inventário completo de VMs (solicitado via flag)...")
+        log.info("Buscando inventário completo de VMs (solicitado via flag)...")
         all_vms = client.list_vms()
         if not all_vms:
-            print("Aviso: Não foi possível obter a lista de VMs. O relatório não incluirá os detalhes das VMs.")
+            log.warning("Não foi possível obter a lista de VMs. O relatório não incluirá os detalhes das VMs.")
     
     # --- PASSO 2: Obter a volumetria total agrupada por projeto ---
-    print(f"Buscando relatório de volumetria de {from_date.strftime('%Y-%m-%d %H:%M')} a {to_date.strftime('%Y-%m-%d %H:%M')}...")
+    log.info(f"Buscando relatório de volumetria de {from_date.strftime('%Y-%m-%d %H:%M')} a {to_date.strftime('%Y-%m-%d %H:%M')}...")
     report_url = f"{client.host}{client.base_path}/chargeback-reporting/backup-size/vm"
     
     from_timestamp = int(from_date.timestamp() * 1000)
     to_timestamp = int(to_date.timestamp() * 1000)
     
     payload = {
-        "groupBy": "project",
-        "from": from_timestamp,
-        "to": to_timestamp,
-        # Mantemos os outros filtros vazios para abranger tudo
+        "groupBy": "project", "from": from_timestamp, "to": to_timestamp,
         "backupDestinationGuids": [], "backupPolicyGuids": [], "hypervisorClusterGuids": [],
         "hypervisorManagerGuids": [], "hypervisorGuids": [], "virtualMachineGuids": [], "projectGuids": []
     }
@@ -46,13 +41,12 @@ def collect_data(client, from_date, to_date, include_vms):
         response.raise_for_status()
         volumetrics_by_project = response.json()
     except Exception as e:
-        print(f"Erro ao buscar o relatório de volumetria por projeto: {e}")
+        log.error(f"Erro ao buscar o relatório de volumetria por projeto: {e}")
         return None
 
     # --- PASSO 3: Combinar os dados ---
-    print("Combinando e estruturando os dados...")
+    log.info("Combinando e estruturando os dados...")
     
-    # Estrutura base do relatório a partir dos dados de volumetria
     projects_data = {
         project['guid']: {
             "project_name": project.get('name', 'N/A'),
@@ -64,10 +58,8 @@ def collect_data(client, from_date, to_date, include_vms):
         for project in volumetrics_by_project
     }
 
-    # Se a inclusão de VMs foi solicitada e os dados foram obtidos com sucesso,
-    # iteramos sobre a lista de VMs e as alocamos em seus respectivos projetos.
     if include_vms and all_vms:
-        print("Alocando VMs aos seus respectivos projetos...")
+        log.info("Alocando VMs aos seus respectivos projetos...")
         for vm in all_vms:
             project_info = vm.get('project')
             if project_info and project_info.get('guid') in projects_data:
@@ -77,15 +69,20 @@ def collect_data(client, from_date, to_date, include_vms):
                     "vm_guid": vm.get('guid', 'N/A')
                 })
 
-    # Converte o dicionário de volta para uma lista, que é um formato JSON mais padrão
     final_report = list(projects_data.values())
     
-    print("Coleta de dados concluída com sucesso.")
+    log.info("Coleta de dados concluída com sucesso.")
     return final_report
 
 
 if __name__ == "__main__":
-    # Configuração da interface de linha de comando
+    # Configura o logging básico para imprimir no console (stderr)
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        stream=sys.stderr # Garante que os logs vão para o stderr
+    )
+
     parser = argparse.ArgumentParser(description="Coletor de dados de volumetria por projeto do Storware.")
     parser.add_argument('--from-date', type=str, help='Data de início do relatório (formato: AAAA-MM-DD).')
     parser.add_argument('--to-date', type=str, help='Data de fim do relatório (formato: AAAA-MM-DD).')
@@ -96,24 +93,29 @@ if __name__ == "__main__":
     # Lógica para definir o período de tempo
     try:
         to_date_obj = datetime.strptime(args.to_date, '%Y-%m-%d').replace(tzinfo=timezone.utc) if args.to_date else datetime.now(timezone.utc)
-        
-        # O padrão é últimas 24h SE a data de início não for fornecida
         if args.from_date:
             from_date_obj = datetime.strptime(args.from_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
         else:
-            from_date_obj = to_date_obj - timedelta(hours=24)
+            from_date_obj = to_date_obj - timedelta(hours=1)
             
     except ValueError:
-        print("Erro: Formato de data inválido. Use AAAA-MM-DD.")
-        exit()
+        log.critical("Erro: Formato de data inválido. Use AAAA-MM-DD.")
+        sys.exit(1)
 
-    # Instancia nosso cliente. O __init__ cuida de todo o login.
     client = StorwareAPIClient()
 
-    if client.session:
-        # Chama a função principal de coleta e processamento com os argumentos da CLI
-        report = collect_data(client, from_date=from_date_obj, to_date=to_date_obj, include_vms=args.include_vms)
-        
-        if report:
-            # Imprime o resultado final em formato JSON formatado
-            print(json.dumps(report, indent=4, ensure_ascii=False))
+    # --- VERIFICAÇÃO EXPLÍCITA DA SESSÃO ---
+    # Esta é a principal mudança para evitar falhas silenciosas.
+    if not client.session:
+        log.critical("Falha ao criar a sessão autenticada. Verifique os logs de erro acima e a sua configuração (variáveis de ambiente, .env).")
+        sys.exit(1)
+
+    # Se a sessão foi criada com sucesso, o script continua...
+    report = collect_data(client, from_date=from_date_obj, to_date=to_date_obj, include_vms=args.include_vms)
+    
+    if report is not None:
+        # A saída principal (o JSON) é impressa no stdout
+        print(json.dumps(report, indent=4, ensure_ascii=False))
+    else:
+        log.error("O relatório final não pôde ser gerado.")
+        sys.exit(1)
