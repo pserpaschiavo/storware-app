@@ -161,7 +161,7 @@ def main():
     report = collect_data(client, from_date=from_date_obj, to_date=to_date_obj)
     
     if report is not None:
-        filename = f"volumetria_{from_date_obj.strftime('%Y-%m-%d')}_ate_{to_date_obj.strftime('%Y-%m-%d')}.json"
+        filename = f"volumetria_{from_date_obj.strftime('%Y-%m-%d')}_-_{to_date_obj.strftime('%Y-%m-%d')}.json"
         
         log.info(f"Preparando para salvar o relatório com {len(report)} projetos no arquivo '{filename}'...")
 
